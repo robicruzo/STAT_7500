@@ -1,0 +1,129 @@
+---
+title: "Stat Programming Notes"
+author: "Robsen Gelalcha"
+date: today
+format:
+  html:
+    self-contained: true
+    toc: true
+    toc_float: true
+    number_section: false
+    highlight: "tango"
+    theme: "cosmo"
+editor: visual
+editor_options:
+  chunk_output_type: console
+---
+```{r}
+#| label: load-packages
+#| message: false
+library(tidyverse)
+library(viridis)
+library(kableExtra)
+library(ggridges)
+library(devtools)
+library(nwslR)
+library(gt)
+library(dsbox)
+```
+
+# Sep. 01 2026
+## Data and Visualization
+### What's in a Dataset
++ Data frames / Tibbles in R 
+	+  Each row is an observation 
+	+ Each column is a variable
+### Exploratory Data Analysis (EDA)
++ An approach to analyzing data set s to summarize its main characteristics
++ Often, this is visual - this is what we'll focus on first
+### Typical data-analysis workflow
+
+1. Import the data
+2. Inspect its structure and contents
+3. Identify the relevant question and variables
+4. Clean the data as necessary
+5. Visualize and analyze the data
+6. Communicate what you learn
+### Data Visualization
++ Data visualization is the creation and study of the visual representation of data.
++ Many tools for visualizing data - R is one of them
++ Many approaches/systems within R for making data visualizations - ggplot2 is one of them, and that's what we're going to use
++ the gg stands for Grammar of Graphics
+# Sept 08 2026
+### Variable Types and Visualization Types
++ Mean is better for 
+# Sept 15 2026
++ Filter: reduces number of rows.
++ Select: reduces number of columns.
++ Mutate: create new variable or changing existing var; increase number of columns.
++ Arrange: reorders/sorts (no change in dimension)
++ Summarize: calculate summary statistics. Don't save back to data.
++ Group by: the group stays as a column, the row is the number of unique groups
+
+## Tidy Data
+
+### Characteristics of tidy data:
++ Each variable forms a column
+ + Each observation forms a row
++ Each type of observational unit forms a table
+```r
+
+hotels |> 
+	select (lead_time)
+
+# another option for this via tidyverse
+select(hotels, lead_time)
+
+hotels |> 
+	select(hotel, lead_time) |>
+	arrange(desc(lead_time))
+
+
+### How does a pipe work?
++ You can think about the following sequence of actions - find keys, start car, drive to work, park.
++ Expr
+
+# these two functions are the same.
+
+# Sep 22 2026
++ inner_join: rows in anchor join that have a match in y.
++ semi_join: keeps matching rows, only keeps columns in the anchor table.
++ anti_join: keeps rows in x (anchor) that doesn't exist in y. 
+
+# Sep 29 2026
+
+
+## Data Wrangling III
+
+```{r}
+#problem number 5 for inclass assignmnt
+
+ucadmit |> 
+  count(dept, gender, admit) |> 
+  pivot_wider(names_from = admit, valeus_from = n) |> 
+  mutate(n_applied = Rejected + Admitted, prop_admit = Admitted/n_applied) |> 
+  select(-Rejected) |> 
+  rename(n_admitted = Admitted)
+#or
+
+```
+
+
++ Simpson's paradox: Not considering an important variable when studying a relationship can result in Rimpson's paradox.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

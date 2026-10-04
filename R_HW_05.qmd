@@ -1,0 +1,315 @@
+---
+title: "R HW 05: Women's Soccer"
+author: "Robsen Gelalcha"
+date: today
+format:
+  html:
+    self-contained: true
+    toc: true
+    toc_float: true
+    number_section: false
+    highlight: "tango"
+    theme: "cosmo"
+editor: visual
+editor_options:
+  chunk_output_type: console
+---
+
+```{r}
+#| label: load-packages
+#| message: false
+library(tidyverse)
+library(viridis)
+library(kableExtra)
+library(ggridges)
+library(devtools)
+library(nwslR)
+library(gt)
+
+matches <- load_matches()
+players <- load_players()
+teams   <- load_teams()
+metrics <- load_metrics()
+```
+
+# Exercise 1
+
+```{r ex-1}
+#determines the external_team_id for the Portland Thorns, 8.
+teams |> 
+  filter(team_name == "Portland Thorns FC") |> 
+    select(external_team_id)
+
+portland_matches <- matches |>
+  filter(home_team_id == 8 | away_team_id == 8)
+
+```
+
+# Exercise 2
+
+```{r ex-2}
+home_team_info <- teams |> 
+  select(home_team_id = external_team_id,
+         home_team_name = team_name,
+         home_team_abbr = team_abbreviation)
+
+
+portland_matches <- portland_matches |> 
+  left_join(home_team_info)
+dim(portland_matches)
+
+away_team_info <- teams |> 
+  select (away_team_id = external_team_id,
+          away_team_name = team_name,
+          away_team_abbr = team_abbreviation)
+
+portland_matches <- portland_matches |> 
+  left_join(away_team_info)
+dim(portland_matches)
+
+
+```
+
+# Exercise 3
+
+```{r ex-3}
+
+portland_matches <- portland_matches |> 
+  mutate(POR_points = if_else(home_team_abbr == "POR",
+                              home_team_score, away_team_score),
+         OPP_points = if_else(home_team_abbr != "POR",
+                              home_team_score, away_team_score),
+         result = case_when(POR_points > OPP_points ~ "Win",
+                            POR_points < OPP_points ~ "Loss",
+                            POR_points == OPP_points ~ "Tie"))
+
+```
+
+# Exercise 4
+
+```{r ex-4}
+# Create a bar chart showing the distribution of result.
+# Include clear axis labels and a title.
+# Interpret the results.
+
+portland_matches |> 
+  filter(!is.na(result)) |> 
+  ggplot(aes(x = result, fill = result)) +
+  geom_bar() +
+  scale_fill_viridis_d(option = "viridis") +
+  theme_minimal() +
+  labs (
+    title = "Distribution of Match Results for Portland Thorns FC",
+    x = "Results",
+    y = "Count",
+    fill = "Result Type"
+  ) 
+
+```
++ Portland won 99 of 222  matches, tied 73 and lost 30.
+
+
+# Exercise 5
+
+```{r ex-5}
+# Create a visualization examining Portland’s performance by season (wins, losses, and ties).
+# 
+# Describe 2–3 patterns you observe.
+
+# glimpse(portland_matches)
+
+portland_matches |>
+  mutate(
+    season = str_replace(season, regex("Challenge Cup", ignore_case = TRUE), "CC"),
+    season = str_replace(season, regex("Fall Series", ignore_case = TRUE), "FS"),
+    result = factor(result, levels = c("Win", "Tie", "Loss"))
+  ) |>
+  ggplot(aes(x = season, fill = result)) +
+  geom_bar(position = position_dodge2(preserve = "single"), width = 0.8) +
+  scale_fill_manual(values = c(Win = "#2E7D32", Tie = "#87CEEB", Loss = "#C62828")) +
+  labs(
+    title = "Portland Thorns FC results by season",
+    x = "Season", y = "Matches", fill = "Result"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+```
+
++ Patterns: regular seasons are winning ones; challenge cups are short tournaments; 2024 season is an outlier with 23 ties and no wins, I'm guessing it's a bunch of placeholder scores of 0 - 0.
+
+# Exercise 6
+
+```{r ex-6}
+# Does Portland have a home-field advantage?
+# 
+# To investigate this question,
+# 
+#     Create a variable indicating whether Portland was the home or away team
+#     Make side-by-side boxplots of points scored
+#     Create a ridge plot using geom_density_ridges()
+# 
+# Describe 2–3 observations.
+
+portland_matches <- portland_matches |> 
+  mutate(
+    home_or_away = ifelse(home_team_abbr == "POR", "home", "away")
+  ) 
+
+portland_matches |> 
+  filter(!is.na(home_or_away)) |> 
+  ggplot(aes(x = home_or_away, y = POR_points, fill = home_or_away)) +
+  geom_boxplot(width = 0.5, outlier.shape = NA) +
+  
+  scale_fill_manual(values = c(home = "#C62828", away = "#9E9E9E")) +
+  labs(
+    title = "Portland Thorns FC goals scored: home vs. away",
+    x = NULL, y = "Goals scored"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+portland_matches |>
+  filter(!is.na(home_or_away)) |>
+  ggplot(aes(x = POR_points, y = home_or_away, fill = home_or_away)) +
+  geom_density_ridges(alpha = 0.8, scale = 0.9) +
+  scale_fill_manual(values = c(home = "#C62828", away = "#9E9E9E")) +
+  labs(
+    title = "Portland Thorns FC goals scored: home vs. away",
+    x = "Goals scored", y = NULL
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+
+
+
+
+
+```
+
++ Portland Thorns clearly enjoy a home advantage. Their highest scoring matches were at home, as indicated by the box plot. And also the games where they scored a goal or less are more concentrated in the away matches.
+
+# Exercise 7
+
+```{r ex-7}
+
+win_summary <- portland_matches |>
+  filter(!is.na(home_or_away), !is.na(result)) |>
+  group_by(home_or_away) |>
+  summarize(
+    games = n(),
+    wins = sum(result == "Win"),
+    prop_won = mean(result == "Win")
+  )
+glimpse(win_summary)
+
+win_summary |> 
+  mutate(home_or_away = str_to_title(home_or_away)) |> 
+  gt() |> 
+  tab_header(
+    title = "Portland Thorns FC win rate",
+    subtitle = "Home vs. awy matches"
+  ) |> 
+  cols_label(
+    home_or_away = "Venue",
+    games = "Games",
+    wins = "Wins",
+    prop_won = "Win %"
+  ) |> 
+  fmt_percent(columns = prop_won, decimals = 1)
+
+```
+
++ The Thorns perform better at home: 63% of home matches won, compared to 37% away. They only lost 18% of matches at home.
+
+# Exercise 8
+
+```{r ex-8}
+#| eval: false
+#| message: false
+#| warning: false
+#| paged-print: false
+safe_load_pms <- purrr::possibly(load_player_match_stats,
+                                 otherwise = data.frame())
+
+player_stats <- purrr::map_df(portland_matches$match_id,
+                              safe_load_pms,
+                              .progress = TRUE)
+
+```
+```{r}
+# Load saved version
+# avoids lengthy re-loading from package on each Render
+player_stats <- readRDS("./data/player_stats.rds")
+shooting <- player_stats |>
+  filter(team_id == 8) |>
+  select(player_id, team_id, shots_total, shots_outside_box, goals) |>
+  group_by(player_id) |>
+  summarise(shots_total       = sum(shots_total, na.rm = TRUE),
+            shots_outside_box = sum(shots_outside_box, na.rm = TRUE),
+            goals             = sum(goals, na.rm = TRUE)) |>
+  filter(shots_total >= 15) |>
+  mutate(prop_outside_box = shots_outside_box / shots_total,
+         prop_goals       = goals / shots_total) |>
+  left_join(players, by = "player_id")
+
+shooting |>
+  slice_max(prop_outside_box, n = 10) |>
+  ggplot(aes(x = prop_outside_box,
+             y = reorder(player_match_name, prop_outside_box))) +
+  geom_col(fill = "purple") +
+  scale_x_continuous(labels = scales::percent) +
+  theme_minimal() +
+  labs(x = "Percentage of shots taken outside the box", y = NULL,
+       title = "Portland players with the highest % of shots from outside the box",
+       subtitle = "Minimum 15 shots")
+
+```
+
+```{r}
+shooting |>
+  slice_max(prop_goals, n = 10) |>
+  select(player_match_name, shots_total, goals, prop_goals) |>
+  mutate(prop_goals = scales::percent(prop_goals, accuracy = 0.1)) |>
+  kable(col.names = c("Player", "Shots", "Goals", "Conversion")) |>
+  kable_styling(full_width = FALSE)
+
+```
+
+# BONUS
+
+## Question: Who scored the most goals per 90 mins. played?
+
+```{r bonus}
+player_stats |> 
+  filter(team_id == 8) |> 
+  group_by(player_id) |> 
+  summarize(minutes = sum(minutes, na.rm = TRUE)
+            ,goals = sum(goals, na.rm = TRUE)) |> 
+  filter(minutes >= 900) |> 
+  mutate(goals_per_90 = goals / minutes * 90) |> 
+  left_join(players, by = "player_id") |> 
+  slice_max(goals_per_90, n = 5) |> 
+  select(player_match_name, minutes, goals, goals_per_90)
+
+
+```
+
+# Reflection prompts
+
+*Respond to each of the following after you have completed all exercises in this assignment*
+
+*(RP1): What were the main concepts / skills covered in this assignment?*
+
++ Different types of joins, in addition to how to use them with data wrangling.
+
+*(RP2): What's one thing you understand better after completing these exercises?*
+
++ How group_by works.
+
+*(RP3): What exercise(s) gave you the most trouble? What was difficult about them/where did you get stuck?*
+
++ The last question was really dumbfounding for me. I didn't internalize the workings of the summarize function before trying to tackle the problem.

@@ -1,0 +1,302 @@
+---
+title: "R HW 02"
+author: "Robsen Gelalcha"
+date: "`r Sys.Date()`"
+format: 
+  html:
+    self-contained: true
+    toc: true
+    toc_float: true
+    number_section: false
+    highlight: "tango"
+    theme: "cosmo"
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| label: load-packages
+#| message: false
+library(tidyverse)
+library(palmerpenguins)
+```
+
+# Exercise 1
+
+```{r}
+patients_raw <- read_csv("data/patients.csv")
+
+glimpse(patients_raw)
+
+```
+
+# Exercise 2
+
+<!-- How many observations and variables are in the data? Use code to support you answer. -->
+<!-- What does one row represent? -->
+<!-- Which variables did R interpret as character variables even though their non-missing values are numerical codes or scores? Why did this occur? -->
+<!-- Why is it important to answer these questions before beginning an analysis? -->
+ + There are 30 rows, which represent observations. There are 4 coulmns, which represent variables.
++ A single row represents a patient.
++ R interpreted the `gender_code` and `baseline_score` as characters even though their non-missing values are numerical codes and scores. This occurred because their missing values are represented with characters.
++ Because a typical data-analysis workflow involves inspecting structure and contents and cleaning the data as necessary.
+
+```{r ex-2}
+
+glimpse(patients_raw) # this displays number of rows and columns.
+
+
+```
+
+
+# Exercise 3
+<!-- Import patients.csv again and assign the result to an object named patients. -->
+
+<!-- This time, use the na argument in read_csv() to identify "Not recorded" and "." as missing values. -->
+
+<!-- Use glimpse() and summary() to inspect patients, and then respond to the following: -->
+
+<!--     Which variables changed type and why? -->
+<!--     Did identifying the missing values change the number of rows or columns? Why or why not? -->
+<!--     Although gender_code is now stored as a numerical variable, should it be interpreted as a quantitative measurement? Explain. -->
+<!--     What does this example demonstrate about the difference between a variable’s storage type and its meaning? -->
++ `gender_code` and `baseline_code` changed type because we've told R to identify its two character values as NA.
++ It didn't change the number rows and columns. Change in type does not reduce or add number of observations and variables.
++ `gender_code` is a qualitative measurement. Even though it's numerical, they're discrete values that alternate between `1`'s and `0`'s.
++ A variables being a numeric values doesn't necesarily mean that it represents a quantitative value. 
+
+```{r ex-3}
+patients <- read_csv("data/patients.csv",na = c("Not recorded","."))
+glimpse(patients)
+summary(patients)
+
+```
+
+  
+
+<!-- # Exercise 4 -->
+<!-- Create a vector called score_change by subtracting each patient’s baseline score from their follow-up score: -->
+
+<!-- score_change <- patients$followup_score - patients$baseline_score -->
+
+<!-- Then: -->
+
+<!--     Print score_change. -->
+<!--     Print only the fifth element using [] notation. -->
+<!--     Verify that score_change is numerical using class(). -->
+<!--     Use summary() to inspect the distribution of the change scores. -->
+<!--     Use appropriate summary statistic function (e.g. mean()) to reproduce the mean, median, minimum, and maximum printed out by summary(). Handle missing values appropriately. -->
+<!--     Explain why score_change contains a missing value. Does that missing value represent a patient whose score did not change? -->
+<!--     In 2–3 sentences, describe what the results suggest about changes in health-awareness scores. -->
+<!--     Do these summaries alone establish that the program caused the observed changes? Explain briefly. -->
+# Exercise 4
++ `score_change` contains a missing value because the `baseline_score` for
+patient `P017` is missing. It does not represent an unchanged score.
++ There was an increase in health-awareness scores for most patients. Three patients
+saw their scores decline however.
+```{r}
+score_change <- c(patients$followup_score - patients$baseline_score)
+t.test(score_change, mu = 0) 
+#Consulted Claude Opus 4.8 for assistance for above t test. 
+#Chat can be accessed here: https://claude.ai/share/8623d47a-8c3b-4890-8731-b758ca210aa2
+```
+
+$H_0: \mu_{diff} = 0$
+
+$H_A: \mu_{diff} \neq 0$
+
+$\alpha = 0.01$
+
+We can reject $H_0$. The program caused the observed changes as per the `t test`
+
+
+
+```{r ex-4}
+
+# patients <- read_csv("data/patients.csv",na = c("Not recorded","."))
+score_change <- c(patients$followup_score - patients$baseline_score)
+
+print(score_change)
+print(score_change[5])
+class(score_change)
+summary(score_change)
+print(mean(score_change,na.rm = TRUE))
+print(median(score_change, na.rm = TRUE))
+print(min(score_change, na.rm = TRUE))
+print(max(score_change, na.rm = TRUE))
+sum(score_change < 0, na.rm = TRUE) # number of patients with declined scores
+
+```
+
+  
+<!-- Use write_csv() to export patients as data/patients_clean.csv. -->
+
+<!-- Then: -->
+
+<!--     Confirm that patients_clean.csv appears inside the data folder in your project. -->
+<!--     Import the exported file and assign it to an object named patients_check. -->
+<!--     Use dim() to verify that patients and patients_check have the same dimensions. -->
+<!--     Use glimpse() to verify that the variables were imported with the expected types. -->
+<!--     Explain why checking an exported file is a useful part of a reproducible workflow. -->
+
+
+# Exercise 5
+
+```{r ex-5}
+write_csv(patients, "data/patients_clean.csv")
+patients_check <- read_csv("data/patients_clean.csv")
+print(dim(patients) == dim(patients_check))
+glimpse(patients_check)
+
+
+```
++ Checking an exported file by importing and verifying it enables us to analyse
+the same data across different devices without hiccups like making sure it's in the right
+location.
+  
+
+# Exercise 6
+<!-- What is the relationship between flipper length and body mass in penguins from the Palmer Archipelago in Antartica? -->
+
+<!-- Construct a scatterplot with: -->
+
+<!--     flipper_length_mm on the x-axis; and -->
+<!--     body_mass_g on the y-axis. -->
+
+<!-- Include an informative title and descriptive axis labels with the units of measurement. -->
+
+<!-- Finally, respond to the following: -->
+
+<!--     What relationship do you observe between flipper length and body mass? -->
+<!--     Did R produce a warning? If so, what does it mean? -->
+
+
+```{r}
+library(palmerpenguins)
+glimpse(penguins)
+
+ggplot(data = penguins, 
+       mapping = aes(x = flipper_length_mm, y = body_mass_g)) +
+  geom_point() +
+  labs(title = "Flipper length and body mass",
+       subtitle = "Dimensions for Penguins from Palmer Archipelago",
+       x = "Flipper length (mm)", y = "Body mass (g)")
+
+```
++ There is a positive linear relationship between Body mass and Flipper length.
++ R produced a warning. It alerts that 2 rows containing missing values or outside
+the scale range were removed.
+
+
+# Exercise 7
+<!-- Modify your plot from Exercise 6 so that dot color represents penguin species. -->
+
+<!-- Then, respond to the following: -->
+
+<!--     What additional information does color reveal? -->
+<!--     Does the overall relationship appear to be explained partly by differences among species? Explain using evidence from the visualization. -->
+<!--     In your code, was color mapped to a variable or set to a constant value? How do you know? -->
+
+```{r}
+penguin_data <- penguins
+species_factor <- factor(penguins$species)
+ggplot(data = penguins, 
+       mapping = aes(x = flipper_length_mm, y = body_mass_g, color = species)) +
+  geom_point() +
+  labs(title = "Flipper length and body mass",
+       subtitle = "Dimensions for Penguins from Palmer Archipelago",
+       x = "Flipper length (mm)", y = "Body mass (g)", color = "Species")
+
+```
++ The color reveals that Gentoo penguins are have overall higher body mass and 
+flipper length than Adelle and Chinstrap penguins.
++ Yes, the overall the relationship between the two variables is made more pronounced
+with the addition of gentoo penguins
++ color is mapped to a variable. The mapping is inside `aes`.
+
+# Exercise 8
+<!-- Create another version of the scatterplot that uses separate facets for the three penguin species instead of mapping species to color. -->
+
+<!-- Compare the faceted plot with the color-coded plot from Exercise 7. -->
+
+<!--     What is easier to see in the color-coded plot? -->
+<!--     What is easier to see in the faceted plot? -->
+<!--     Which version would you use to communicate the relationship among species, flipper length, and body mass? Briefly justify your choice based on your communication goal. -->
+
+
+```{r}
+
+ggplot(penguins, aes(x = flipper_length_mm, y = body_mass_g)) + 
+  geom_point() +
+  facet_grid(species ~ island) 
+```
++ It's easier to see the overall relationship between the two variables on the color
+coded plot
++ It's easier to see the relationship between flipper length and body mass within a species
++ I'd use the color-coded plot. If my goal is to communicate the relationship between all three variables, the color-coded one does a better job at displaying a more linear relationship and isn't specific to one species.
+
+<!--    -->
+<!-- Before running the code above, predict what it will produce. Then, copy it into an executable code chunk, run it, and compare the result with your prediction. -->
+
+<!--     Why does the plot contain a legend? -->
+<!--     Why are the points not necessarily navy blue? -->
+
+<!-- Correct the code so that all points are navy blue and no color legend is created. Then, modify the corrected plot so that all points: -->
+
+<!--     are navy blue; -->
+<!--     are slightly transparent; and -->
+<!--     have a size larger than the default. -->
+
+<!-- Explain why color, alpha, and size belong inside or outside aes() in your final plot. Your explanation should describe the general rule, not only this particular example. -->
+
+# Exercise 9
+
++ I predicted a scatterplot identical to the one above with the added difference of
+color set to `navyblue`. 
+
++ `navyblue` is being read as a category with the same value for each row. Therefore,
+there's a legend with a single entry.
+
++ The points aren't navy blue because `navyblue` was specified inside `aes`
+which makes R think that it's mapped to data and not a color setting.
+
++ Placing color, alpha and size inside or outside `aes()` is what determines whether
+they're determined by a variable inside the data or not. For example, if `color` 
+is inside `aes`, each category inside the specified column will get a color. If placed 
+inside `geom_point`, then it will not be mapped to the column.
+
+
+```{r}
+ggplot(
+  penguins,
+  aes(
+    x = flipper_length_mm,
+    y = body_mass_g,
+    
+  )
+) +
+  geom_point(color = "navyblue", alpha=0.5, size = 5)
+
+```
+
+
+# Reflection prompts
+
+*Respond to each of the following after you have completed all exercises in this assignment*
+
+*(RP1): What were the main concepts covered in this assignment?*
+
++ Data visualization, Importing data and exporting data, Summary Statistics, Dealing
+with missing data, Statistical inference, Data analysis workflow, Aesthetics,
+Mapping and Setting, Faceting.
+ 
+
+*(RP2): What's one thing you understand better or can do more confidently after completing these exercises?*
+
+ - Creating simple scatter-plots in R.
+
+*(RP3): Where did you experience the most difficulty or uncertainty? Describe where you got stuck, what you tried, and what ultimately helped—or what remains unresolved.*
+
+ - I had to revise on doing t tests and determining null and alternative hypothesis.
+ I consulted an LLM.

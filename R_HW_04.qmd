@@ -1,0 +1,231 @@
+---
+title: "R HW 04: Data Wrangling"
+author: "Robsen Gelalcha"
+date: "`r Sys.Date()`"
+format: 
+  html:
+    self-contained: true
+    toc: true
+    toc_float: true
+    number_section: false
+    highlight: "tango"
+    theme: "cosmo"
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| label: load-packages
+#| message: false
+
+library(tidyverse)
+library(scales)
+library(ggbeeswarm)
+```
+
+# Load Data
+
+```{r load-data, message = F}
+midwest <- ggplot2::midwest
+nc_county <- read_csv("data/nc-county.csv")
+```
+
+# Exercise 1
+
+```{r}
+midwest |> 
+  count(state) |>
+  arrange(desc(state))
+
+```
+
+- Illinois has the most counties with 102. Wisconsin has the least number of counties with 72.
+
+# Exercise 2
+
+<!-- While two counties in a given state can’t have the same name, some county names might be shared across states. A classmate says “Look at that, there is a county called ___ in each state in this dataset!” -->
+
+<!--     In a single pipeline, discover all counties that could fill in the blank. Your response should be a data frame with only the county names that could fill in the blank and the number of times they appear in the data, and narrative stating the county names that could fill in this blank. -->
+
+```{r ex-2}
+midwest |>
+  count(county) |>
+  filter(n == n_distinct(midwest$state))
+```
+
+- "Look at that, there's a county called Crawford in each state in this dataset!"
+- "Look at that, there'a a county called Jackson in each state in this dataset!"
+- "Look at that, there's a county called Monroe in each state in this dataset!"
+
+# Exercise 3
+
+```{r ex-3}
+#Identify the counties with a population density higher than 25,000
+midwest |> 
+  select(county, state, popdensity, poptotal, area) |> 
+    filter(popdensity > 25000) |> 
+      arrange(desc(popdensity))
+
+
+#Identify the county with the highest population density.
+midwest |>
+  select(county, state, popdensity, poptotal, area) |>
+  filter(popdensity == max(popdensity))
+```
+
+# Exercise 4
+
+```{r ex-4}
+midwest |> 
+  summarize(mean_popdensity = mean(popdensity))
+
+midwest |> 
+  summarize(q1 = quantile(popdensity, 0.25))
+
+midwest |> 
+  summarize(q3 = quantile(popdensity, 0.75))
+
+```
+
+# Exercise 5
+<!-- The visualization below shows the proportion of counties located in a metropolitan area in each state. Calculate these proportions in a single data pipeline. -->
+
+```{r ex-5}
+midwest |> 
+  mutate(metro = ifelse(inmetro == 1, "Yes", "No")) |> 
+    group_by(state) |> 
+      summarise(prop_metro = sum(metro == "Yes") / n())
+```
+
+# Dataset #2
+
+```{r}
+nc_county <- read_csv("data/nc-county.csv")
+```
+
+# Exercise 6
+
+<!-- Report the number of rows and columns in nc_county. Then, create a new variable called p_edu_he (short for “percentage of population with higher education”) that is the sum of the percentages of
+
+    25-44-year-olds with some college or an associate degree (p_edu_scnd),
+    non-degree credentials (p_edu_ndc),
+    an associate degree (p_edu_assoc),
+    a bachelor’s degree (p_edu_ba), and
+    a master’s, professional, or doctoral degree (p_edu_mapl).
+
+and store this variable in the nc_county data frame.
+
+Confirm the number of rows and columns in nc_county after adding this variable. -->
+
+```{r ex-6}
+glimpse(nc_county)
+#  25-44-year-olds with some college or an associate degree (p_edu_scnd),
+#     non-degree credentials (p_edu_ndc),
+#     an associate degree (p_edu_assoc),
+#     a bachelor’s degree (p_edu_ba), and
+#     a master’s, professional, or doctoral degree (p_edu_mapl).
+nc_county <- nc_county |> 
+  mutate(p_edu_he = p_edu_scnd + p_edu_ndc + p_edu_assoc + p_edu_ba + p_edu_mapl)
+
+glimpse(nc_county)
+
+
+```
++ There were originally 100 rows and 22 columns in the North Carolina counties data. It has 23 columns with the addition of `p_edu_he`.
+
+# Exercise 7
+
+```{r ex-7}
+# minimum,
+# first quartile (25th percentile),
+# median (50th percentile),
+# mean,
+# third quartile (75th percentile), and
+# maximum
+
+nc_county |> 
+  summarize(minimum = min(p_edu_he), Q1 = quantile(p_edu_he,0.25), median = median(p_edu_he), Q3 = quantile(p_edu_he, 0.75), maximum = max(p_edu_he))
+```
+
+# Exercise 8
+
+```{r}
+nc_county |> 
+  summarize(minimum = min(p_edu_he), Q1 = quantile(p_edu_he,0.25), median = median(p_edu_he), Q3 = quantile(p_edu_he, 0.75), maximum = max(p_edu_he),.by=county_type)
+
+
+```
+
+# Exercise 9
+
+```{r ex-9}
+# The plot below shows the distribution of p_edu_he by county_type. In a single pipeline, identify the outliers in the plot and return a data frame with the county name, county type, percentage with higher education. This data frame should be arranged in ascending order of county type and descending order of percentage with higher education.
+nc_county |>
+  filter(
+    p_edu_he < quantile(p_edu_he, 0.25) - 1.5 * IQR(p_edu_he) |
+    p_edu_he > quantile(p_edu_he, 0.75) + 1.5 * IQR(p_edu_he),
+    .by = county_type
+  ) |>
+  select(county, county_type, p_edu_he) |>
+  arrange(county_type, desc(p_edu_he))
+
+
+```
+
+# Exercise 10
+
+```{r ex-10}
+# ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) +
+#   geom_point()
+ggplot(data = nc_county, mapping = aes(x = p_edu_he, y = median_hh_income)) +
+  geom_point() +
+  scale_y_continuous(labels = label_dollar()) +
+  # Format X-axis with standard commas (1,000,000)
+  scale_x_continuous(labels = label_percent()) +
+  labs(x = "25-44 year olds with higher education", y = "Median household income")
+
+
+iqr_flag <- function(x, k = 1.5) {
+  q <- quantile(x, c(0.25, 0.75), na.rm = TRUE)
+  fence <- k * IQR(x, na.rm = TRUE)
+  x < q[1] - fence | x > q[2] + fence
+}
+
+nc_county |>
+  mutate(out_x = iqr_flag(p_edu_he),
+         out_y = iqr_flag(median_hh_income)) |>
+  filter(out_x | out_y) |>
+  select(county, p_edu_he, median_hh_income)
+
+```
+
++ There's a positive linear relationship between percentage of 25-44 year olds with higher education and median household income. The strength seems somewhere between weak and moderate. 
+
+# Exercise 11
+
++ What is the percentage of 25-44 year olds with a higher education by county type?
+
+
+
+```{r}
+nc_county |>
+  group_by(county_type) |>
+  summarize(mean_he = mean(p_edu_he)) |>
+  mutate(county_type = fct_relevel(county_type,
+           "Urban", "Suburban", "Rural - Metro", "Rural - Non-Metro")) |>
+  ggplot(aes(county_type, mean_he, fill = county_type)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = percent(mean_he, accuracy = 1)),
+            vjust = -0.5, fontface = "bold") +
+  scale_y_continuous(labels = percent, limits = c(0, 1),
+                     expand = expansion(mult = c(0, 0.02))) +
+  scale_fill_brewer(palette = "Blues", direction = -1, guide = "none") +
+  labs(x = NULL, y = NULL,
+       title = "Share of 25–44 year olds with higher education, by county type") +
+  theme_minimal(base_size = 13) +
+  theme(panel.grid.major.x = element_blank())
+
+```
+
+As expected, the more urban a county is the higher the percentage of its population with a higher education. 

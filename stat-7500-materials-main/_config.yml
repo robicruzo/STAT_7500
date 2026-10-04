@@ -1,0 +1,8 @@
+title: STAT 7500 Statistical Programming
+url: "https://kgfitzgerald.github.io"
+baseurl: "/stat-7500-materials"
+
+exclude:
+  - README.md
+  - LICENSE
+  - stat-7500-materials.Rproj

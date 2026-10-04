@@ -1,0 +1,81 @@
+---
+title: "week_02"
+format: html
+---
+
+```{r}
+
+prediet <- c(140,160,135,120,125,165,108,130,225,140,180)
+
+postdiet <- c(139,155,120,118,123,155,108,129,195,142,176)
+
+weight_loss <- prediet - postdiet
+
+print(weight_loss[5])
+
+fifth_weigh_loss_value <- weight_loss[5]/2.2
+
+print(class(fifth_weigh_loss_value))
+weight_loss_kg <- weight_loss / 2.2
+
+data <- data.frame(prediet,postdiet, weight_loss, weight_loss_kg)
+print(mean(data$weight_loss_kg))
+print(median(data$weight_loss_kg))
+print(min(data$weight_loss_kg))
+print(max(data$weight_loss_kg))
+summary(data$weight_loss_kg)
+
+data$weight_gain_category <- ifelse(data$weight_loss > 0, "loss", "gain")
+is.character(data$weight_gain_category)
+
+t.test(x = prediet, y = postdiet, paired = TRUE)
+
+t.test(x=weight_loss)
+
+
+```
+
+## Inference
+
+$H_0: \mu_{diff} = 0$
+
+$H_A: \mu_{diff} \neq 0$
+
+$\alpha = 0.01$
+
+Fail to reject $H_0$ - we do not have sufficient evidence to claim that the diet/program was
+effective.
+
+
+```{r}
+library(tidyverse)
+nobel <- read_csv("data/nobel.csv")
+
+glimpse(nobel)
+```
+
+
+
+```{r}
+library(tidyverse)
+patients <- read_csv("data/patients.csv",na = c("Not recorded",".")) # this specifies what else can be interpreted as NA.
+glimpse(patients)
+
+
+write_csv(patients, "data/patients_clean.csv")
+
+patient_clean <- read_csv("data/patients_clean.csv")
+glimpse(patient_clean)
+```
+
+### Typical data-analysis workflow
+
+1. Import the data
+2. Inspect its structure and contents
+3. Identify the relevant question and variables
+4. Clean the data as necessary
+5. Visualize and analyze the data
+6. Communicate what you learn
+
+
+

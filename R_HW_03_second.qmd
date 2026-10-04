@@ -1,0 +1,258 @@
+---
+title: "R HW 03"
+author: "Robsen Gelalcha"
+date: "September 14, 2026"
+format: 
+  html:
+    self-contained: true
+    toc: true
+    toc_float: true
+    number_section: false
+    highlight: "tango"
+    theme: "cosmo"
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| label: load-packages
+#| message: false
+library(tidyverse)
+library(viridis)
+library(ggridges)
+
+```
+
+# Exercise 1
+
+The data was collected by the American National Election Studies. The data collection for the study began in August 2020 and continued until November 2020. A sample of US eligible voters were surveyed. The sample was randomly assigned to one of three groups: web only, mixed web and phone, and mixed video.
+
+# Exercise 2
+
+```{r ex-2}
+anes <- read_csv("data/anes2020_subset.csv")
+
+glimpse(anes)
+
+```
+
+- There are 8,280 rows and 6 columns.
+- A single row represents an eligible US voter.
+
+# Exercise 3
+
+```{r ex-3}
+ggplot(anes, aes(x = factor(ideology), fill = factor(ideology))) +
+  geom_bar() +
+  
+  labs(x = "Ideology", y = "Number of voters", fill = "Ideology") +
+  theme_minimal()
+```
+
+- 4 is the most common ideology.
+- The two smallest bars are at the extreme ends of the plot, so most respondents aren't at ideological extremes and tend to be moderate.
+- A considerable number of respondents didn't disclose their ideology, which should be considered when interpreting the visualization.
+
+# Exercise 4
+
+<!-- Create a filled bar chart with: -->
+
+<!--     one bar for each level of ideology; -->
+
+<!--     urbanrural mapped to the fill aesthetic; and -->
+
+<!--     each bar scaled to a total height of 1 so that the segments represent proportions. -->
+
+<!-- You are encouraged, but not required, to use a viridis color palette. Include clear labels for the axes, legend, and plot. -->
+
+<!-- Then, respond to the following: -->
+
+<!--     Where do respondents with different political ideologies tend to live? -->
+
+<!--     Which comparisons are made easier by displaying proportions rather than counts? -->
+
+<!--     Does the proportion of nonresponses vary substantially by ideology? -->
+
+```{r ex-4}
+ggplot(anes, aes(y = factor(ideology), fill = urbanrural)) +
+  geom_bar(position = "fill") +
+  scale_fill_viridis_d() +
+  labs(x = "Proportion of voters",
+       y = "Ideology",
+       fill = "Type of location",
+       title = "Location type by political ideology") +
+  theme_minimal()
+```
+
+- Reading across the bars: more liberal respondents lean toward city/suburb, while more conservative respondents carry a larger share of small town/rural. Location type shifts as you move along the ideology scale.
+
+- Proportions make it easier to compare the internal composition of each ideology group. If we relied on counts, a populous location type would swallow the smaller ones and the composition would be hard to compare across ideologies.
+
+- The proportion of N/A across the ideology bars is fairly consistent and doesn't vary substantially by ideology.
+
+# Exercise 5
+
+```{r ex-5}
+ggplot(anes, aes(x = scientists)) +
+  geom_histogram(color = "white", binwidth = 10)
+
+```
+
+- The distribution is left skewed (tail toward the low end) with most mass piled at the warm/high end and a single dominant peak near the top.
+- It's lumpy rather than smooth: respondents anchor on round numbers, so there are spikes at 50, 85, and 100.
+- `binwidth = 10` smooths over those spikes. A narrower binwidth exposes the pile-up at 100 and the anchoring at 50.
+
+# Exercise 6
+
+<!-- Does the political ideology of respondents who went hunting or fishing in the past year differ from the ideology of those who did not? -->
+
+<!-- Create side-by-side boxplots comparing the two groups. -->
+
+<!-- Begin with the following code, which removes observations with missing values for hunt_fish and creates clearer labels for the two groups: -->
+
+```{r}
+anes |>
+  drop_na(hunt_fish, ideology) |>
+  mutate(
+    hunted_fished = if_else(
+      hunt_fish == 0,
+      "Did Not Hunt or Fish",
+      "Hunted or Fished"
+    )
+  ) |>
+  ggplot(aes(x = hunted_fished, y = ideology, fill = hunted_fished)) +
+  geom_boxplot() +
+  labs(
+    title = "Political Ideology by Hunting/Fishing Status",
+    x = "Hunting or Fishing Status",
+    y = "Ideology (1 = Very Liberal … 7 = Very Conservative)",
+    fill = NULL
+  ) +
+  theme(legend.position = "none")
+
+```
+
+- Yes. The hunt/fish group sits higher on the scale and carries more mass in the conservative (5–7) range, while non-hunters cluster closer to the moderate middle.
+
+# Exercise 7
+
+<!-- Explore the same question as in Exercise 6 using geom_density_ridges() to construct a ridge plot. -->
+
+<!-- Use the same two groups and make sure the plot is clearly labeled. -->
+
+```{r}
+anes |>
+  drop_na(hunt_fish, ideology) |>
+  mutate(
+    hunted_fished = if_else(hunt_fish == 0, "Did Not Hunt or Fish", "Hunted or Fished")
+  ) |>
+  ggplot(aes(x = ideology, y = hunted_fished, fill = hunted_fished)) +
+  geom_density_ridges(alpha = 0.7) +
+  labs(
+    title = "Political Ideology by Hunting/Fishing Status",
+    x = "Ideology (1 = Very Liberal … 7 = Very Conservative)",
+    y = NULL,
+    fill = NULL
+  ) +
+  theme_ridges() +
+  theme(legend.position = "none")
+```
+
+- Both groups peak near the moderate center, but the hunt/fish group leans more conservative, with more weight in the 5–7 range. Non-hunters carry relatively more mass on the liberal side.
+
+# Exercise 8
+
+<!-- Compare the boxplots and ridge plots from Exercises 6 and 7. -->
+
+<!--     What do the two visualizations suggest about differences in ideology between the groups? -->
+
+<!--     What is easier to see in the boxplots? -->
+
+<!--     What is easier to see in the ridge plots? -->
+
+<!--     Which visualization would you use to communicate the comparison? Briefly justify your choice. -->
+
+- Both plots agree that hunters/fishers lean more conservative.
+- The five-number summary about the data is easier to see on the box plot. If we're trying to determine which median is higher, the box plot is easier to glean from.
+- The ridge plots show the distributional shape far better than the compact boxes. So if we want to learn about the modality, skew and where most of the mass is, it's the plot of choice.
+- I think the ridge plot is better suited to glean a more nuanced understanding from. Not only does it communicate the information we could get from the boxplot, we also see a better visual of where most of the mass lives.
+- ideology only takes 7 discrete values, so the ridge smooths them into continuous curves that imply gradations the scale doesn't actually have.
+
+# Exercise 9
+
+<!-- Then, evaluate the resulting visualization: -->
+
+<!--     Is a scatterplot an especially useful way to display these variables? Why or why not? -->
+
+<!--     How does the way education is measured affect the appearance and interpretation of the plot? -->
+
+<!--     Does the fitted linear relationship make sense for these data? -->
+
+<!--     What alternative visualization might communicate the relationship more effectively? -->
+
+- I don't think so. Scatterplots are useful when the variables are continuous. Here education is discrete and scientists piles on round numbers, so the points collapse onto a grid.
+
+- Education is ordinal, so the intervals aren't necessarily equal. Treating the codes as evenly spaced assumes the gap between adjacent levels (e.g. one degree tier and the next) is the same everywhere. The line of best fit inherits the same problem.
+
+- It only slightly makes sense. There's a genuine positive slope (more education, more appreciation for scientists), but a straight line assumes a constant change per level on a scale that isn't equally spaced, and scientists is bounded at 0/100 so the line mispredicts at the high end.
+
+- I think a density ridge of scientists grouped by education level would do a better job
+
+```{r}
+anes |>
+  drop_na(education, scientists) |>
+  ggplot(aes(x = education, y = scientists)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Warmth Toward Scientists by Education",
+    x = "Education (1 = lowest … 8 = highest)",
+    y = "Feeling Thermometer: Scientists (0–100)"
+  )
+
+```
+
+# Exercise 10
+
+- Is there a relationship between the type of place respondents reside and whether they're into hunting/fishing?
+- `hunt_fish` and `urbanrural`
+
+```{r}
+anes |>
+  drop_na(hunt_fish, urbanrural) |>
+  mutate(
+    hunted_fished = if_else(hunt_fish == 0, "Did Not Hunt or Fish", "Hunted or Fished"),
+    
+    urbanrural = factor(urbanrural, levels = c("city", "suburb", "small town", "rural"))
+  ) |>
+  ggplot(aes(x = urbanrural, fill = hunted_fished)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Hunting/Fishing Participation by Type of Residence",
+    x = "Type of Place",
+    fill = NULL
+  )
+
+
+```
+
+- Both variables are categorical, and the number of respondents varies wildly across residence types, so I care about the *rate* of hunting/fishing within each type rather than raw counts. Scaling each bar to a proportion answers "of the people who live here, what fraction hunt or fish?".
+
+- Unsurprisingly, the closer a person is to the city, the less likely they are to engage in hunting or fishing.
+
+# Exercise 11
+
+<!-- Write a brief paragraph that synthesizes what you learned from your analyses. -->
+
+<!-- Your paragraph should address: -->
+
+<!--     the most important or interesting findings; -->
+
+<!--     limitations of the data or analyses; -->
+
+<!--     conclusions that cannot be supported by these visualizations alone; and -->
+
+<!--     additional data that would help you investigate related questions. -->
+
+A pattern across these analyses is one of degree: hunters and fishers lean somewhat more conservative and skew rural, while warmth toward scientists climbs modestly with education. Several limitations temper these findings. Every relationship shown is bivariate, so nothing holds confounders like rurality, age, or partisanship constant, and the results rest on unweighted data with missing values dropped. Because of this, these visualizations cannot support any causal claim, nor can they generalize reliably to the national electorate. I would want multivariate models, ANES survey weights, and longitudinal data to test whether these associations persist over time.
